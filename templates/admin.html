@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Key Yönetimi</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #007bff; color: white; }
+        form { margin: 10px 0; }
+        input, button { padding: 5px; margin: 2px; }
+        .message { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .logout { background: #ff3333; color: white; }
+        .logout:hover { background: #cc0000; }
+    </style>
+</head>
+<body>
+    <h1>Key Yönetimi Paneli</h1>
+    <a href="{{ url_for('logout') }}" class="logout">Çıkış Yap</a>
+    {% if message %}
+        <p class="{% if 'Hata' in message %}error{% else %}message{% endif %}">{{ message }}</p>
+    {% endif %}
+    
+    <h2>Key'ler Listesi</h2>
+    <table>
+        <tr><th>Key</th><th>Kullanıcı</th><th>Bitiş Tarihi</th><th>İşlemler</th></tr>
+        {% for k in keys %}
+        <tr>
+            <td>{{ k['key'] }}</td>
+            <td>{{ k['username'] }}</td>
+            <td>{{ k['end_date'] }}</td>
+            <td>
+                <form method="post" style="display:inline;">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="key" value="{{ k['key'] }}">
+                    <button type="submit" onclick="return confirm('Sil?')">Sil</button>
+                </form>
+                <form method="post" style="display:inline;">
+                    <input type="hidden" name="action" value="extend">
+                    <input type="hidden" name="key" value="{{ k['key'] }}">
+                    <input type="number" name="days" value="365" min="1" style="width:50px;">
+                    <button type="submit">Uzat</button>
+                </form>
+                <form method="post" style="display:inline;">
+                    <input type="hidden" name="action" value="reduce">
+                    <input type="hidden" name="key" value="{{ k['key'] }}">
+                    <input type="number" name="days" value="30" min="1" style="width:50px;">
+                    <button type="submit">Düşür</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    <h2>Yeni Key Oluştur</h2>
+    <a href="{{ url_for('create_key') }}">Yeni Key Oluştur</a>
+</body>
+</html>

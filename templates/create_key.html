@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Yeni Key Oluştur</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 400px; margin: 0 auto; padding: 20px; background: white; border-radius: 8px; }
+        input, button { padding: 10px; margin: 5px; width: 90%; }
+        button { background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .message { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .logout { background: #ff3333; color: white; }
+        .logout:hover { background: #cc0000; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Yeni Key Oluştur</h1>
+        <a href="{{ url_for('logout') }}" class="logout">Çıkış Yap</a>
+        {% if message %}
+            <p class="message">{{ message }}</p>
+        {% endif %}
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+        <form method="post">
+            <input type="text" name="username" placeholder="Kullanıcı Adı" required>
+            <input type="number" name="days" placeholder="Süre (gün)" min="1" required>
+            <button type="submit">Key Oluştur</button>
+        </form>
+        <a href="{{ url_for('admin_panel') }}">Geri Dön</a>
+    </div>
+</body>
+</html>

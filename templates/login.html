@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Giriş</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; text-align: center; }
+        .container { max-width: 400px; margin: 0 auto; padding: 20px; background: white; border-radius: 8px; }
+        input, button { padding: 10px; margin: 5px; width: 90%; }
+        button { background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Giriş</h1>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+        <form method="post">
+            <input type="password" name="password" placeholder="Admin Şifresi" required>
+            <button type="submit">Giriş</button>
+        </form>
+    </div>
+</body>
+</html>

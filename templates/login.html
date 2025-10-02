@@ -1,26 +1,21 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-    <title>Admin Giriş</title>
+    <title>Giriş</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #ffffff; padding: 20px; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { max-width: 400px; padding: 30px; background: #1e1e1e; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); text-align: center; }
-        input { padding: 12px; margin: 10px 0; width: 100%; box-sizing: border-box; border: 1px solid #333; border-radius: 5px; background: #2d2d2d; color: #fff; }
-        button { padding: 12px; width: 100%; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background 0.3s; }
-        button:hover { background: #0056b3; }
-        .error { color: #ff6b6b; margin: 10px 0; }
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        input { padding: 5px; margin: 5px; }
+        .error { color: red; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Admin Giriş</h1>
-        {% if error %}
-            <p class="error">{{ error }}</p>
-        {% endif %}
-        <form method="post">
-            <input type="password" name="password" placeholder="Admin Şifresi" required>
-            <button type="submit">Giriş</button>
-        </form>
-    </div>
+    <h1>Giriş Yap</h1>
+    <form method="post">
+        <input type="password" name="password" placeholder="Şifre" required><br>
+        <input type="submit" value="Giriş">
+    </form>
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
 </body>
 </html>

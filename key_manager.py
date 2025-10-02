@@ -3,7 +3,8 @@ import sqlite3
 from datetime import date, timedelta, datetime
 import os
 from dotenv import load_dotenv
-import requests  # IP loglama için
+import requests
+import secrets  # Key üretimi için
 
 load_dotenv()
 
@@ -71,9 +72,9 @@ def log_ip(key, ip, action='validate'):
 def check_simultaneous_use(key):
     conn = get_db_connection()
     five_min_ago = (datetime.now() - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S')
-    logs = conn.execute('SELECT ip, COUNT(*) as count FROM ip_logs WHERE key = ? AND timestamp > ? GROUP BY ip HAVING count > 1', (key, five_min_ago)).fetchall()
+    logs = conn.execute('SELECT ip FROM ip_logs WHERE key = ? AND timestamp > ? GROUP BY ip', (key, five_min_ago)).fetchall()
     conn.close()
-    return len(logs) > 0  # Birden fazla IP varsa True
+    return len(logs) > 1  # Farklı IP sayısı > 1 ise True
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -105,8 +106,8 @@ def admin_panel():
     # Kullanılan key'ler (son 24 saatte log var)
     used_keys = conn.execute('''
         SELECT k.*, COUNT(l.ip) as usage_count FROM keys k
-        INNER JOIN ip_logs l ON k.key = l.key
-        WHERE k.is_banned = 0 AND l.timestamp > datetime('now', '-1 day')
+        LEFT JOIN ip_logs l ON k.key = l.key
+        WHERE k.is_banned = 0 AND (l.timestamp > datetime('now', '-1 day') OR l.timestamp IS NULL)
         GROUP BY k.key
     ''').fetchall()
     
@@ -265,6 +266,9 @@ def validate_key():
         'remaining_days': (end_date - today).days
     })
 
-if __name__ == '__main__':
+@app.before_first_request
+def initialize_database():
     init_db()
+
+if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

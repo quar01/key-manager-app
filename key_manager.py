@@ -1,15 +1,14 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 import sqlite3
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta
 import os
 from dotenv import load_dotenv
-import requests
 import secrets
 
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('FLASK_SECRET_KEY') or 'dev_secret_key'  # Üretimde değiştirin
+app.secret_key = os.getenv('FLASK_SECRET_KEY') or 'dev_secret_key'
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD') or 'admin123'
 
 # Veritabanı yolu
@@ -22,7 +21,6 @@ def get_db_connection():
 
 def init_db():
     conn = get_db_connection()
-    # Keys tablosu (is_banned eklendi)
     conn.execute('''
         CREATE TABLE IF NOT EXISTS keys (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,49 +30,8 @@ def init_db():
             is_banned INTEGER DEFAULT 0
         )
     ''')
-    # IP logları tablosu
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS ip_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT NOT NULL,
-            ip TEXT NOT NULL,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            action TEXT DEFAULT 'validate'
-        )
-    ''')
-    # Banlı IP'ler tablosu
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS banned_ips (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ip TEXT UNIQUE NOT NULL,
-            ban_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-            reason TEXT
-        )
-    ''')
     conn.commit()
     conn.close()
-
-# IP ban kontrolü
-def is_ip_banned(ip):
-    conn = get_db_connection()
-    result = conn.execute('SELECT * FROM banned_ips WHERE ip = ?', (ip,)).fetchone()
-    conn.close()
-    return result is not None
-
-# IP loglama
-def log_ip(key, ip, action='validate'):
-    conn = get_db_connection()
-    conn.execute('INSERT INTO ip_logs (key, ip, action) VALUES (?, ?, ?)', (key, ip, action))
-    conn.commit()
-    conn.close()
-
-# Aynı key için son 5 dakikada birden fazla IP kontrolü
-def check_simultaneous_use(key):
-    conn = get_db_connection()
-    five_min_ago = (datetime.now() - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S')
-    logs = conn.execute('SELECT ip FROM ip_logs WHERE key = ? AND timestamp > ? GROUP BY ip', (key, five_min_ago)).fetchall()
-    conn.close()
-    return len(logs) > 1  # Farklı IP sayısı > 1 ise True
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -91,55 +48,15 @@ def logout():
     session.pop('logged_in', None)
     return redirect(url_for('login'))
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['GET'])
 def admin_panel():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     
     conn = get_db_connection()
-    
-    # Kullanılmayan key'ler (son 24 saatte log yok)
-    unused_keys = conn.execute('''
-        SELECT * FROM keys WHERE is_banned = 0 AND key NOT IN (SELECT DISTINCT key FROM ip_logs WHERE timestamp > datetime('now', '-1 day'))
-    ''').fetchall()
-    
-    # Kullanılan key'ler (son 24 saatte log var)
-    used_keys = conn.execute('''
-        SELECT k.*, COUNT(l.ip) as usage_count FROM keys k
-        LEFT JOIN ip_logs l ON k.key = l.key
-        WHERE k.is_banned = 0 AND l.timestamp > datetime('now', '-1 day')
-        GROUP BY k.key
-    ''').fetchall()
-    
-    # Banlı key'ler
-    banned_keys = conn.execute('SELECT * FROM keys WHERE is_banned = 1').fetchall()
-    
-    # Banlı IP'ler
-    banned_ips = conn.execute('SELECT * FROM banned_ips').fetchall()
-    
-    # POST istekleri için (uzatma/düşürme)
-    if request.method == 'POST':
-        action = request.form.get('action')
-        key = request.form.get('key')
-        days = request.form.get('days')
-        
-        if action and key and days:
-            try:
-                days = int(days)
-                conn = get_db_connection()
-                if action == 'extend':
-                    conn.execute('UPDATE keys SET end_date = date(end_date, ? || " days") WHERE key = ?', (days, key))
-                elif action == 'reduce':
-                    conn.execute('UPDATE keys SET end_date = date(end_date, ? || " days") WHERE key = ?', (-days, key))
-                conn.commit()
-                conn.close()
-                return redirect(url_for('admin_panel'))
-            except Exception as e:
-                conn.close()
-                return render_template('admin.html', unused_keys=unused_keys, used_keys=used_keys, banned_keys=banned_keys, banned_ips=banned_ips, message=f"Hata: {str(e)}")
-    
+    keys = conn.execute('SELECT * FROM keys').fetchall()
     conn.close()
-    return render_template('admin.html', unused_keys=unused_keys, used_keys=used_keys, banned_keys=banned_keys, banned_ips=banned_ips)
+    return render_template('admin.html', keys=keys)
 
 @app.route('/create_key', methods=['GET', 'POST'])
 def create_key():
@@ -178,87 +95,12 @@ def create_key():
     
     return render_template('create_key.html', error=None, message=None)
 
-@app.route('/ban_key', methods=['POST'])
-def ban_key():
-    if not session.get('logged_in'):
-        return jsonify({'error': 'Yetkisiz'}), 403
-    
-    key = request.json.get('key')
-    if not key:
-        return jsonify({'error': 'Key gerekli'}), 400
-    
-    conn = get_db_connection()
-    conn.execute('UPDATE keys SET is_banned = 1 WHERE key = ?', (key,))
-    conn.commit()
-    conn.close()
-    return jsonify({'success': True})
-
-@app.route('/unban_key', methods=['POST'])
-def unban_key():
-    if not session.get('logged_in'):
-        return jsonify({'error': 'Yetkisiz'}), 403
-    
-    key = request.json.get('key')
-    if not key:
-        return jsonify({'error': 'Key gerekli'}), 400
-    
-    conn = get_db_connection()
-    conn.execute('UPDATE keys SET is_banned = 0 WHERE key = ?', (key,))
-    conn.commit()
-    conn.close()
-    return jsonify({'success': True})
-
-@app.route('/ban_ip', methods=['POST'])
-def ban_ip():
-    if not session.get('logged_in'):
-        return jsonify({'error': 'Yetkisiz'}), 403
-    
-    ip = request.json.get('ip')
-    reason = request.json.get('reason', 'Manuel ban')
-    if not ip:
-        return jsonify({'error': 'IP gerekli'}), 400
-    
-    conn = get_db_connection()
-    conn.execute('INSERT OR IGNORE INTO banned_ips (ip, reason) VALUES (?, ?)', (ip, reason))
-    conn.commit()
-    conn.close()
-    return jsonify({'success': True})
-
-@app.route('/unban_ip', methods=['POST'])
-def unban_ip():
-    if not session.get('logged_in'):
-        return jsonify({'error': 'Yetkisiz'}), 403
-    
-    ip = request.json.get('ip')
-    if not ip:
-        return jsonify({'error': 'IP gerekli'}), 400
-    
-    conn = get_db_connection()
-    conn.execute('DELETE FROM banned_ips WHERE ip = ?', (ip,))
-    conn.commit()
-    conn.close()
-    return jsonify({'success': True})
-
-@app.route('/get_ip_logs/<key>', methods=['GET'])
-def get_ip_logs(key):
-    if not session.get('logged_in'):
-        return jsonify({'error': 'Yetkisiz'}), 403
-    
-    conn = get_db_connection()
-    logs = conn.execute('SELECT * FROM ip_logs WHERE key = ? ORDER BY timestamp DESC', (key,)).fetchall()
-    conn.close()
-    return jsonify([dict(row) for row in logs])
-
 @app.route('/validate_key', methods=['POST'])
 def validate_key():
     data = request.json
     key = data.get('key')
-    ip = data.get('ip') or 'unknown'
     if not key:
         return jsonify({'valid': False, 'message': 'Key gerekli'}), 400
-    
-    if is_ip_banned(ip):
-        return jsonify({'valid': False, 'message': 'IP adresiniz banlanmış'}), 401
     
     conn = get_db_connection()
     key_data = conn.execute('SELECT * FROM keys WHERE key = ?', (key,)).fetchone()
@@ -277,15 +119,6 @@ def validate_key():
         conn.close()
         return jsonify({'valid': False, 'message': 'Key süresi bitmiş'}), 401
     
-    log_ip(key, ip)
-    
-    if check_simultaneous_use(key):
-        conn.execute('UPDATE keys SET is_banned = 1 WHERE key = ?', (key,))
-        conn.commit()
-        conn.close()
-        return jsonify({'valid': False, 'message': 'Key banlandı (aynı anda birden fazla cihaz)'}), 401
-    
-    conn.commit()
     conn.close()
     
     return jsonify({

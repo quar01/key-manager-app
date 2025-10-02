@@ -1,174 +1,169 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
     <title>Key Yönetimi</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #ffffff; padding: 20px; margin: 0; }
-        .container { max-width: 1200px; margin: 0 auto; background: #1e1e1e; border-radius: 10px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        h1 { color: #007bff; text-align: center; }
-        .tabs { display: flex; border-bottom: 1px solid #333; margin-bottom: 20px; }
-        .tab { padding: 10px 20px; background: #2d2d2d; border: none; color: #fff; cursor: pointer; transition: background 0.3s; }
-        .tab.active { background: #007bff; }
-        .tab:hover { background: #0056b3; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #2d2d2d; border-radius: 5px; overflow: hidden; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background: #007bff; color: white; }
-        tr:hover { background: #3d3d3d; }
-        button { padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; transition: background 0.3s; margin: 2px; }
-        button:hover { background: #218838; }
-        button.ban { background: #dc3545; }
-        button.ban:hover { background: #c82333; }
-        .logout { float: right; background: #dc3545; color: white; text-decoration: none; padding: 8px 16px; border-radius: 5px; }
-        .logout:hover { background: #c82333; }
-        .form-group { margin: 10px 0; }
-        input[type="text"], input[type="number"] { padding: 8px; background: #2d2d2d; color: #fff; border: 1px solid #333; border-radius: 3px; }
-        .message { color: #28a745; font-weight: bold; }
-        .error { color: #ff6b6b; font-weight: bold; }
+        form { margin: 5px 0; display: inline; }
+        input, button { padding: 5px; margin: 2px; }
+        .message { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .logout { background: #ff3333; color: white; padding: 5px 10px; text-decoration: none; }
+        .logout:hover { background: #cc0000; }
+        .section { margin-top: 20px; }
+        .action-btn { background: #28a745; color: white; border: none; cursor: pointer; }
+        .action-btn:hover { background: #218838; }
+        .ban-btn { background: #dc3545; color: white; }
+        .ban-btn:hover { background: #c82333; }
     </style>
-    <script>
-        function showTab(tabId) {
-            var tabs = document.querySelectorAll('.tab-content');
-            tabs.forEach(tab => tab.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            
-            var tabButtons = document.querySelectorAll('.tab');
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-        }
-        
-        function banKey(key) {
-            if (confirm('Key banlansın mı?')) {
-                fetch('/ban_key', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({key: key})
-                }).then(() => location.reload());
-            }
-        }
-        
-        function unbanKey(key) {
-            if (confirm('Ban kaldırılsın mı?')) {
-                fetch('/unban_key', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({key: key})
-                }).then(() => location.reload());
-            }
-        }
-        
-        function banIP(ip, reason) {
-            if (confirm('IP banlansın mı?')) {
-                fetch('/ban_ip', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ip: ip, reason: reason})
-                }).then(() => location.reload());
-            }
-        }
-        
-        function unbanIP(ip) {
-            if (confirm('IP banı kaldırılsın mı?')) {
-                fetch('/unban_ip', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ip: ip})
-                }).then(() => location.reload());
-            }
-        }
-        
-        function showIPLogs(key) {
-            fetch(`/get_ip_logs/${key}`)
-                .then(response => response.json())
-                .then(logs => {
-                    let logTable = '<table><tr><th>IP</th><th>Zaman</th><th>İşlem</th></tr>';
-                    logs.forEach(log => {
-                        logTable += `<tr><td>${log.ip}</td><td>${log.timestamp}</td><td>${log.action}</td></tr>`;
-                    });
-                    logTable += '</table>';
-                    alert(logTable);
-                });
-        }
-    </script>
 </head>
 <body>
-    <div class="container">
-        <h1>Key Yönetimi Paneli</h1>
-        <a href="{{ url_for('logout') }}" class="logout">Çıkış Yap</a>
-        
-        <div class="tabs">
-            <button class="tab active" onclick="showTab('unused-keys')">Kullanılmayan Key'ler</button>
-            <button class="tab" onclick="showTab('used-keys')">Kullanılan Key'ler</button>
-            <button class="tab" onclick="showTab('banned-keys')">Banlı Key'ler</button>
-            <button class="tab" onclick="showTab('ban-ips')">IP Banlama</button>
-        </div>
-        
-        <div id="unused-keys" class="tab-content active">
-            <h2>Kullanılmayan Key'ler</h2>
+    <h1>Key Yönetimi Paneli</h1>
+    <a href="{{ url_for('logout') }}" class="logout">Çıkış Yap</a>
+    {% if message %}
+        <p class="{% if 'Hata' in message %}error{% else %}message{% endif %}">{{ message }}</p>
+    {% endif %}
+
+    <!-- Yeni Key Oluşturma -->
+    <div class="section">
+        <h2>Yeni Key Oluştur</h2>
+        <a href="{{ url_for('create_key') }}">Yeni Key Oluştur</a>
+    </div>
+
+    <!-- Kullanılmayan Key'ler -->
+    <div class="section">
+        <h2>Kullanılmayan Key'ler</h2>
+        {% if unused_keys %}
             <table>
                 <tr><th>Key</th><th>Kullanıcı</th><th>Bitiş Tarihi</th><th>İşlemler</th></tr>
                 {% for k in unused_keys %}
-                <tr onclick="showIPLogs('{{ k.key }}')">
-                    <td>{{ k.key }}</td>
-                    <td>{{ k.username }}</td>
-                    <td>{{ k.end_date }}</td>
-                    <td><a href="{{ url_for('create_key') }}">Yeni Key Oluştur</a></td>
+                <tr>
+                    <td>{{ k['key'] }}</td>
+                    <td>{{ k['username'] }}</td>
+                    <td>{{ k['end_date'] }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('ban_key') }}" style="display:inline;">
+                            <input type="hidden" name="key" value="{{ k['key'] }}">
+                            <button type="submit" class="ban-btn" onclick="return confirm('Banla?')">Banla</button>
+                        </form>
+                        <form method="post" action="{{ url_for('unban_key') }}" style="display:inline;">
+                            <input type="hidden" name="key" value="{{ k['key'] }}">
+                            <button type="submit" class="action-btn" onclick="return confirm('Ban kaldırılsın mı?')">Ban Kaldır</button>
+                        </form>
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="action" value="extend">
+                            <input type="hidden" name="key" value="{{ k['key'] }}">
+                            <input type="number" name="days" value="365" min="1" style="width:50px;">
+                            <button type="submit" class="action-btn">Uzat</button>
+                        </form>
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="action" value="reduce">
+                            <input type="hidden" name="key" value="{{ k['key'] }}">
+                            <input type="number" name="days" value="30" min="1" style="width:50px;">
+                            <button type="submit" class="action-btn">Düşür</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </table>
-        </div>
-        
-        <div id="used-keys" class="tab-content">
-            <h2>Kullanılan Key'ler</h2>
+        {% else %}
+            <p>Hiç kullanılmayan key yok.</p>
+        {% endif %}
+    </div>
+
+    <!-- Kullanılan Key'ler -->
+    <div class="section">
+        <h2>Kullanılan Key'ler</h2>
+        {% if used_keys %}
             <table>
                 <tr><th>Key</th><th>Kullanıcı</th><th>Bitiş Tarihi</th><th>Kullanım Sayısı</th><th>İşlemler</th></tr>
                 {% for k in used_keys %}
-                <tr onclick="showIPLogs('{{ k.key }}')">
-                    <td>{{ k.key }}</td>
-                    <td>{{ k.username }}</td>
-                    <td>{{ k.end_date }}</td>
-                    <td>{{ k.usage_count }}</td>
-                    <td><button onclick="banKey('{{ k.key }}')" class="ban">Banla</button></td>
+                <tr>
+                    <td>{{ k['key'] }}</td>
+                    <td>{{ k['username'] }}</td>
+                    <td>{{ k['end_date'] }}</td>
+                    <td>{{ k['usage_count'] }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('ban_key') }}" style="display:inline;">
+                            <input type="hidden" name="key" value="{{ k['key'] }}">
+                            <button type="submit" class="ban-btn" onclick="return confirm('Banla?')">Banla</button>
+                        </form>
+                        <form method="post" action="{{ url_for('unban_key') }}" style="display:inline;">
+                            <input type="hidden" name="key" value="{{ k['key'] }}">
+                            <button type="submit" class="action-btn" onclick="return confirm('Ban kaldırılsın mı?')">Ban Kaldır</button>
+                        </form>
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="action" value="extend">
+                            <input type="hidden" name="key" value="{{ k['key'] }}">
+                            <input type="number" name="days" value="365" min="1" style="width:50px;">
+                            <button type="submit" class="action-btn">Uzat</button>
+                        </form>
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="action" value="reduce">
+                            <input type="hidden" name="key" value="{{ k['key'] }}">
+                            <input type="number" name="days" value="30" min="1" style="width:50px;">
+                            <button type="submit" class="action-btn">Düşür</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </table>
-        </div>
-        
-        <div id="banned-keys" class="tab-content">
-            <h2>Banlı Key'ler</h2>
+        {% else %}
+            <p>Hiç kullanılan key yok.</p>
+        {% endif %}
+    </div>
+
+    <!-- Banlı Key'ler -->
+    <div class="section">
+        <h2>Banlı Key'ler</h2>
+        {% if banned_keys %}
             <table>
                 <tr><th>Key</th><th>Kullanıcı</th><th>Bitiş Tarihi</th><th>İşlemler</th></tr>
                 {% for k in banned_keys %}
-                <tr onclick="showIPLogs('{{ k.key }}')">
-                    <td>{{ k.key }}</td>
-                    <td>{{ k.username }}</td>
-                    <td>{{ k.end_date }}</td>
-                    <td><button onclick="unbanKey('{{ k.key }}')">Ban Kaldır</button></td>
+                <tr>
+                    <td>{{ k['key'] }}</td>
+                    <td>{{ k['username'] }}</td>
+                    <td>{{ k['end_date'] }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('unban_key') }}" style="display:inline;">
+                            <input type="hidden" name="key" value="{{ k['key'] }}">
+                            <button type="submit" class="action-btn" onclick="return confirm('Ban kaldırılsın mı?')">Ban Kaldır</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </table>
-        </div>
-        
-        <div id="ban-ips" class="tab-content">
-            <h2>IP Banlama</h2>
-            <div class="form-group">
-                <input type="text" id="ip-input" placeholder="IP Adresi (örn: 192.168.1.1)">
-                <input type="text" id="reason-input" placeholder="Ban Nedeni">
-                <button onclick="banIP(document.getElementById('ip-input').value, document.getElementById('reason-input').value)">IP Banla</button>
-            </div>
+        {% else %}
+            <p>Hiç banlı key yok.</p>
+        {% endif %}
+    </div>
+
+    <!-- Banlı IP'ler -->
+    <div class="section">
+        <h2>Banlı IP'ler</h2>
+        {% if banned_ips %}
             <table>
-                <tr><th>IP</th><th>Ban Tarihi</th><th>Neden</th><th>İşlemler</th></tr>
+                <tr><th>IP</th><th>Ban Tarihi</th><th>Sebep</th><th>İşlemler</th></tr>
                 {% for ip in banned_ips %}
                 <tr>
-                    <td>{{ ip.ip }}</td>
-                    <td>{{ ip.ban_date }}</td>
-                    <td>{{ ip.reason }}</td>
-                    <td><button onclick="unbanIP('{{ ip.ip }}')">Ban Kaldır</button></td>
+                    <td>{{ ip['ip'] }}</td>
+                    <td>{{ ip['ban_date'] }}</td>
+                    <td>{{ ip['reason'] }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('unban_ip') }}" style="display:inline;">
+                            <input type="hidden" name="ip" value="{{ ip['ip'] }}">
+                            <button type="submit" class="action-btn" onclick="return confirm('Ban kaldırılsın mı?')">Ban Kaldır</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </table>
-        </div>
+        {% else %}
+            <p>Hiç banlı IP yok.</p>
+        {% endif %}
     </div>
 </body>
 </html>
